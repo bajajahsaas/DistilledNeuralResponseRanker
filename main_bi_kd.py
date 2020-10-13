@@ -29,7 +29,7 @@ parser.add_argument('--student_lr', default=5e-5, type=float)
 
 parser.add_argument('--student_batch', default=16, type=int)
 
-parser.add_argument('--load', default=2, type=int)
+parser.add_argument('--load', default=1, type=int)
 parser.add_argument('--load_student', default=0, type=int)
 parser.add_argument('--aug', default=False)
 parser.add_argument('--device', default='cuda')

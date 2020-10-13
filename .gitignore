@@ -1,3 +1,6 @@
 *.txt
 *.bin
 outputs/*
+logs/*
+*pyc
+(base) campus-vpn-172-26-67-40:triangle
