@@ -9,3 +9,5 @@ mantis
 *.tsv
 *.zip
 logs
+*.out
+*.err
