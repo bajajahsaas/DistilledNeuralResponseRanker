@@ -4,3 +4,8 @@ outputs/*
 logs/*
 *pyc
 (base) campus-vpn-172-26-67-40:triangle
+venv
+mantis
+*.tsv
+*.zip
+logs
