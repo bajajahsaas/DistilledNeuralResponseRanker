@@ -6,4 +6,4 @@
 #SBATCH --mem=50000
 #SBATCH --ntasks=1
 
-python3 ./main_bert_bi.py -- --dataset mantis --batch 8 --nmodel MolyEncoderAggP2 --epochs 1
+python3 ./main_bert_bi_copy.py --dataset=mantis --batch=8 --nmodel=MolyEncoderAggP2 --epochs 1

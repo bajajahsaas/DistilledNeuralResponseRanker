@@ -75,6 +75,14 @@ def get_dataset_stats(dataset):
         num_cand = 11
         max_len = 300
         max_sent = 80
+
+    elif dataset == 'archive':
+        t_10 = 2
+        t_50 = 5
+        num_cand = 11
+        max_len = 300
+        max_sent = 80
+ 
     else:
         raise Exception('no such dataset')
 

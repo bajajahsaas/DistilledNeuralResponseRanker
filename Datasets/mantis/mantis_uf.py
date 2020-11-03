@@ -1,9 +1,9 @@
 from functools import partial
 from transformers import BertTokenizer, AlbertTokenizer, RobertaTokenizer
 
-MAX_RESPONSE_LEN = 60
-MAX_CONTEXT_LEN = 200
-MAX_CONTEXT_SEQ_LEN = 10
+MAX_RESPONSE_LEN = 80
+MAX_CONTEXT_LEN = 300
+MAX_CONTEXT_SEQ_LEN = 15
 
 def truncate(x, length):
     if len(x) <= length:
