@@ -20,7 +20,7 @@ from utils.stuff import get_dataset_stats, get_bert_tokenizer, get_directories, 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--dataset', default='mantis')
+parser.add_argument('--dataset', default='ubuntu_data')
 parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--batch', default=8, type=int)
 parser.add_argument('--load', default=0, type=int)
@@ -205,6 +205,7 @@ for i_epoch in range(1 + START_EPOCH, 1 + N_EPOCHS + START_EPOCH):
             gold_bincounts_all = torch.zeros(NUM_CANDIDATES).long()
             p_bar_d = tqdm(data_loader)
             for step, batch in enumerate(p_bar_d):
+
                 batch = tuple(t.to(device) for t in batch)
                 c, r = batch
 

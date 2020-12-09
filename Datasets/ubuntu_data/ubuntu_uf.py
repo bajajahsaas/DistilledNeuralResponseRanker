@@ -1,9 +1,9 @@
 from functools import partial
 from transformers import BertTokenizer, AlbertTokenizer, RobertaTokenizer
 
-MAX_RESPONSE_LEN = 60
-MAX_CONTEXT_LEN = 200
-MAX_CONTEXT_SEQ_LEN = 10
+MAX_RESPONSE_LEN = 80
+MAX_CONTEXT_LEN = 300
+MAX_CONTEXT_SEQ_LEN = 15
 
 def truncate(x, length):
     if len(x) <= length:
@@ -28,5 +28,6 @@ process_response = partial(process, MAX_RESPONSE_LEN)
 
 def process_utterances(x):
     utterances = [process_response(i) for i in x][:MAX_CONTEXT_SEQ_LEN]
+    print(len(utterances))
     utterances = utterances + ((MAX_CONTEXT_SEQ_LEN - len(utterances)) * [[0] * (MAX_RESPONSE_LEN + 2)])
     return utterances

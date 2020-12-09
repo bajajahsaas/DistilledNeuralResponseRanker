@@ -8,5 +8,5 @@
 #SBATCH --mem=50000
 #SBATCH --ntasks=1
 
-python3 ./main_bert_bi.py --dataset=ubuntu_data --batch=16 --nmodel=BiEncoderDot2 --epochs 1 
-python3 ./main_bert_bi.py --dataset=mantis --batch=16 --nmodel=BiEncoderDot2 --epochs 1
+python3 ./main_bert_bi.py  --batch=16 --nmodel=BiEncoderDot2 --epochs 1
+

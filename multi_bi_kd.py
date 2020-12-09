@@ -20,7 +20,7 @@ from utils.stuff import get_dataset_stats, get_bert_tokenizer, get_directories, 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--dataset', default='test-mantis')
+parser.add_argument('--dataset', default='ubuntu_data')
 
 parser.add_argument('--epochs', default=1, type=int)
 
@@ -116,28 +116,40 @@ tokenizer, PAD, SEP, CLS, vocab_size = get_bert_tokenizer(TRANSFORMER_NAME)
 
 # %%
 
+def switch_dataset(string):
+  if 'ubuntu' in string:
+    return string.replace("ubuntu_data", "mantis")
+  else:
+    assert 'mantis' in string
+    return string.replace("mantis", "ubuntu_data")
 
-teacher_hyper_parameters = get_bert_bi_hyperparameter_string(args,
+
+orig_teacher_hyper_parameters = get_bert_bi_hyperparameter_string(args,
                                                              DEVICE_NAME if TEACHER_DEVICE is None else TEACHER_DEVICE)
+orig_teacher_weights_dir, _, orig_teacher_hist_dir, _ = get_directories(BERT_TYPE, orig_teacher_hyper_parameters)
 
-teacher_weights_dir, _, teacher_hist_dir, _ = get_directories(BERT_TYPE, teacher_hyper_parameters)
+ood_teacher_hyper_parameters = switch_dataset(orig_teacher_hyper_parameters)
+ood_teacher_weights_dir, _, ood_teacher_hist_dir, _ = get_directories(BERT_TYPE, ood_teacher_hyper_parameters)
 
 if ALPHA != 1.0 and not USE_CACHED_LOGITS:
     print(f'Building model {MODEL_NAME} ...')
     Model = getattr(models, MODEL_NAME)
-    teacher_model = Model(TRANSFORMER_NAME, vocab_size, PAD)
-    # if args[0].dp:
-    #     model = DataParallel(model)
-    teacher_model = teacher_model.to(device)
-    teacher_model.eval()
+    orig_teacher_model = Model(TRANSFORMER_NAME, vocab_size, PAD)
+    orig_teacher_model = orig_teacher_model.to(device)
+    orig_teacher_model.eval()
+
+    ood_teacher_model = Model(TRANSFORMER_NAME, vocab_size, PAD)
+    ood_teacher_model = ood_teacher_model.to(device)
+    ood_teacher_model.eval()
 
     if TEACHER_LOAD_EPOCH > 0:
         print(f'Load epoch {TEACHER_LOAD_EPOCH} weights for {MODEL_NAME} ...')
-        weight_path = os.path.join(teacher_weights_dir,
-                                   model_name(teacher_model) + '.state_dict.epoch=' + str(TEACHER_LOAD_EPOCH) + '.bin')
-        teacher_model.load_state_dict(torch.load(weight_path), strict=False)
+        orig_weight_path = os.path.join(orig_teacher_weights_dir,
+                                   model_name(orig_teacher_model) + '.state_dict.epoch=' + str(TEACHER_LOAD_EPOCH) + '.bin')
+        orig_teacher_model.load_state_dict(torch.load(orig_weight_path), strict=False)
 
 if ALPHA != 1.0 and USE_CACHED_LOGITS:
+    print("try not using cached logits?")
     print(f'Loading logits from {MODEL_NAME} ...')
     teacher_logits_all = torch.load(f'{teacher_hist_dir}/{MODEL_NAME}.logits.epoch={TEACHER_LOAD_EPOCH}.batch={STUDENT_BATCH_SIZE}.bin')
     teacher_logits_data_loader = DataLoader(TensorDataset(teacher_logits_all), batch_size=STUDENT_BATCH_SIZE * STUDENT_BATCH_SIZE)
@@ -146,9 +158,6 @@ if ALPHA != 1.0 and USE_CACHED_LOGITS:
 
 print(f'Building model {MODEL_STUDENT_NAME} ...')
 StudentModel = getattr(models, MODEL_STUDENT_NAME)
-# student_model = models.DualPieceRNN(teacher_model.bert1.embeddings, PAD)
-# student_model = models.DualTransformerStudent(teacher_model.bert1, PAD)
-
 student_model = StudentModel(TRANSFORMER_NAME, vocab_size, PAD)
 
 if args[0].use_weights:
@@ -159,7 +168,7 @@ student_model = student_model.to(device)
 student_hyper_parameters = get_student_hyperparameter_string(DEVICE_NAME, TEACHER_DEVICE, args[0])
 
 student_weights_dir, student_metrics_dir, student_history_dir, student_plot_dir = get_directories(
-    f'kd/{teacher_hyper_parameters}', student_hyper_parameters)
+    f'kd/{orig_teacher_hyper_parameters}', student_hyper_parameters)
 
 NAME = model_name(student_model) if args[0].nname is None else args[0].nname
 
@@ -188,6 +197,25 @@ def calc_logits(c, r):
     return logitses
 
 
+class Feedforward(torch.nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(Feedforward, self).__init__()
+        self.input_size = input_size
+        self.hidden_size  = hidden_size
+        self.output_size = output_size
+        self.fc1 = torch.nn.Linear(self.input_size, self.hidden_size)
+        self.relu = torch.nn.ReLU()
+        self.fc2 = torch.nn.Linear(self.hidden_size, self.output_size)
+        self.relu2 = torch.nn.ReLU()
+    def forward(self, x):
+        hidden = self.fc1(x)
+        relu = self.relu(hidden)
+        output = self.fc2(relu)
+        output = self.relu2(output)
+        return output
+
+combiner =  Feedforward(512, 100, 256).to(device)
+mini_combiner =  Feedforward(32, 20, 16).to(device)
 # %%
 metrics_history = []
 
@@ -199,7 +227,8 @@ criterion_mse = lambda a, b, l: ((a - b).pow(2) * (l * (l.sum() - 1) + 1) / l.su
 
 
 if ALPHA != 1.0 and not USE_CACHED_LOGITS:
-    teacher_model.train()
+    orig_teacher_model.train()
+    ood_teacher_model.train()
 
 for i_epoch in range(1 + STUDENT_LOAD_EPOCH, 1 + N_EPOCHS + STUDENT_LOAD_EPOCH):
     student_model.train()
@@ -209,9 +238,13 @@ for i_epoch in range(1 + STUDENT_LOAD_EPOCH, 1 + N_EPOCHS + STUDENT_LOAD_EPOCH):
     acc = 0
     total_train = 0
     if USE_CACHED_LOGITS:
+        assert False
         teacher_logits_iter = teacher_logits_data_loader.__iter__()
     p_bar = tqdm(train_data_loader)
     for step, batch in enumerate(p_bar):
+
+        if step == 1:
+          continue
 
         optimizer.zero_grad()
 
@@ -228,10 +261,19 @@ for i_epoch in range(1 + STUDENT_LOAD_EPOCH, 1 + N_EPOCHS + STUDENT_LOAD_EPOCH):
         loss_bce = criterion_bce(student_logits, labels)
         if 0 <= ALPHA < 1:
             if USE_CACHED_LOGITS:
+                assert False
                 teacher_logits = next(teacher_logits_iter)[0].to(device)
             else:
                 with torch.no_grad():
-                    teacher_logits, _ = teacher_model.forward_with_negatives(c, r)  # (BB)
+                    orig_teacher_logits, _ = orig_teacher_model.forward_with_negatives(c, r)  # (BB)
+                    ood_teacher_logits, _ = ood_teacher_model.forward_with_negatives(c, r)  # (BB)
+                    both_logits = torch.cat((orig_teacher_logits, ood_teacher_logits)).to(device)
+                if both_logits.shape[0] == 512:
+                  teacher_logits = combiner.forward(both_logits).to(device)
+                else:
+                  assert both_logits.shape[0] == 32
+                  teacher_logits = mini_combiner.forward(both_logits).to(device)
+
             loss_mse = criterion_mse(student_logits, teacher_logits, labels)
             combined_loss = ALPHA * loss_bce + (1 - ALPHA) * loss_mse
             loss_mse_train += loss_mse.item()

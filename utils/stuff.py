@@ -43,10 +43,14 @@ def model_name(model):
 
 
 def get_dataset_stats(dataset):
-    if 'ubuntu_data' in dataset:
-        t_10 = 2
-        t_50 = 5
-        num_cand = 10
+    print(dataset)
+    if dataset in ["dstc7_advising", "dstc7_ubuntu"]:
+        t_10 = 10
+        t_50 = 50
+        if dataset == "dstc_advising":
+          num_cand = 100
+        else:
+          num_cand = 10
         max_len = 200
         max_sent = 60
     elif 'dstc7' in dataset:
@@ -69,12 +73,12 @@ def get_dataset_stats(dataset):
         max_len = 300
         max_sent = 70
 
-    elif dataset == 'mantis':
-        t_10 = 2
-        t_50 = 5
-        num_cand = 11
-        max_len = 300
-        max_sent = 80
+    #elif dataset == 'mantis':
+    #    t_10 = 2
+    #    t_50 = 5
+    #    num_cand = 11
+    #    max_len = 300
+    #    max_sent = 80
 
     elif dataset == 'archive':
         t_10 = 2
@@ -82,7 +86,14 @@ def get_dataset_stats(dataset):
         num_cand = 11
         max_len = 300
         max_sent = 80
- 
+  
+    elif 'ubuntu' in dataset or 'mantis' in dataset:
+      t_10 = 2
+      t_50 = 5
+      num_cand = 10
+      max_len = 800
+      max_sent = 80
+
     else:
         raise Exception('no such dataset')
 
@@ -185,7 +196,7 @@ def load_data_loaders(path, transformer_name, aug, batch_size, n_train, n_test, 
     def load_data(fname, b_size, shuffle, n=None):
         with open(fname, 'rb') as f:
             context, response = pickle.load(f)
-
+        #n=200000
         dataset = TensorDataset(torch.tensor(context[:n]), torch.tensor(response[:n]))
 
         # dataloader = DataLoader(dataset, batch_size=b_size, shuffle=False)

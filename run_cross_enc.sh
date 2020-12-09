@@ -8,5 +8,4 @@
 #SBATCH --mem=50000
 #SBATCH --ntasks=1
 
-python3 ./main_bert_bi.py --dataset=ubuntu_data --batch=8 --nmodel=MolyEncoderAggP2 --epochs 1
-#python3 ./main_bert_bi.py --dataset=mantis --batch=8 --nmodel=MolyEncoderAggP2 --epochs 1
+python3 ./main_bert_bi.py --batch=8 --nmodel=MolyEncoderAggP2 --epochs 1

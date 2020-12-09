@@ -8,7 +8,7 @@ import pickle
 
 # %%
 
-def preprocess(name, is_train):
+def preprocess(name, is_train, skip_eleventh=False):
     with open('./' + name + '.txt', 'r', encoding='utf-8-sig') as f:
         s = f.readlines()
 
@@ -27,7 +27,6 @@ def preprocess(name, is_train):
                      .replace('__url__', '[URL]')
                      .strip()
                  for x in s]
-
     with Pool(os.cpu_count() // 2) as p:
         token_ids_context = p.map(ubuntu_uf.process_context, tqdm(contexts))
 
@@ -38,6 +37,7 @@ def preprocess(name, is_train):
     if is_train:
         token_ids_matrix_response = np.array(token_ids_response).astype('int64')[::2]
     else:
+        print(len(token_ids_response))
         token_ids_matrix_response = np.array(token_ids_response).astype('int64').reshape(len(token_ids_response) // 10,
                                                                                          10, -1)
 

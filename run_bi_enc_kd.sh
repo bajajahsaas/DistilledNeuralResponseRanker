@@ -11,4 +11,4 @@
 
 
 # Training a Bi-Encoder using cross-entropy loss and knowledge distillation:
-python ./main_bi_kd.py -- --dataset ubuntu_data --batch 8 --student_batch 16 --alpha 0.5  --epochs 1
+python ./main_bi_kd.py -- --batch 8 --student_batch 16 --alpha 0.5  --epochs 1

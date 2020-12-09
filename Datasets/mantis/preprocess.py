@@ -9,7 +9,7 @@ import mantis_uf
 def preprocess(name, is_train):
     with open("./" + name + ".tsv", 'r', encoding='utf-8-sig') as f:
         s = f.readlines()
-    n_samp = 11
+    n_samp = 2 if is_train else 10
     contexts = [' [EOU] '.join(x.split('\t')[1:-1])
                     .replace('__number__', '[NUM]')
                     .replace('__path__', '[PATH]')
